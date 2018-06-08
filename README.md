@@ -1,12 +1,12 @@
-# Voobly Ratings
+# Voobly Ratings for ECL
 
-A script for scrapping Voobly ratings, based on a script from Jineapple.
+A script for scraping Voobly ratings, inspired by a script from Jineapple.
 
 ## Usage
 
-Run this script as Python script by running the file `scrap_ratings.py`
+Run this script as Python script by running the file `scrape_ratings.py`
 ```
-> python scrap_ratings.py <voobly-username> <voobly-password>
+> python scrape_ratings.py <voobly-username> <voobly-password>
 ```
 I recommend installing the Anaconda Python distribution if you do not already have Python installed: [https://www.anaconda.com/download/](https://www.anaconda.com/download/).
 
