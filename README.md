@@ -12,7 +12,7 @@ I recommend installing the Anaconda Python distribution if you do not already ha
 
 <!-- TODO windows explorer and powershell screenshots -->
 
-The players are specified in a file named `players.txt` contained in the same directory as `scrap_ratings.py`
+The players are specified in a file named `players.csv` contained in the same directory as `scrap_ratings.py`
 This file starts with a header line, then each line consists of a player name, a comma, and then the URL of that player's Voobly profile.
 This URL ends in the player's Voobly user id.
 A trailing slash must not be appended to the URL.
