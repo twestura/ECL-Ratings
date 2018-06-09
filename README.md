@@ -46,7 +46,7 @@ AkeNo, 1814, 1858, 1689, 1777
 
 ## Future Plans
 * Multiple Voobly profiles per player, in case highest 1v1 and highest TG ratings are on separate accounts.
-* Support for the other ladders so this can pull ratings for other tournaments, e.g.\ deathmatch tournaments.
+* Support for the other ladders so this can pull ratings for other tournaments, e.g. deathmatch tournaments.
 * Integration with Google Forms and Sheets and Challonge to automate the signup and bracket creation process.
 * GUI interface to make it easier to use for people not familar with a command line.
 * Voobly provides an API for accessing information about user accounts and ladders here: `https://www.voobly.com/pages/view/147/External-API-Documentation`. Unfortunately, this API currently does not include the highest elo, only the current elo. I would prefer to use the API, if it's ever updated, instead of scraping the website.
