@@ -10,7 +10,12 @@ Run this script as Python script by running the file `scrape_ratings.py`
 ```
 I recommend installing the Anaconda Python distribution if you do not already have Python installed: [https://www.anaconda.com/download/](https://www.anaconda.com/download/).
 
-<!-- TODO windows explorer and powershell screenshots -->
+For example, place the `scrape_ratings.py` and `players.csv` files in the same directory.
+Open a command line by typing `powershell` into the bar at the top of the Explorer window and pressing Enter.
+![File Structure](images/file-structure.png "File Structure")
+
+Then enter the command to run the file.
+![Command Input](images/command-input.png "Command Input")
 
 The players are specified in a file named `players.csv` contained in the same directory as `scrap_ratings.py`
 This file starts with a header line, then each line consists of a player name, a comma, and then the URL of that player's Voobly profile.
