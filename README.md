@@ -17,6 +17,8 @@ Open a command line by typing `powershell` into the bar at the top of the Explor
 Then enter the command to run the file.
 ![Command Input](images/command-input.png "Command Input")
 
+If there are spaces in your username or password, then you can surround them with double quotation marks, as down with the password in the preceding image.
+
 The players are specified in a file named `players.csv` contained in the same directory as `scrap_ratings.py`
 This file starts with a header line, then each line consists of a player name, a comma, and then the URL of that player's Voobly profile.
 (This file may end optionally with a blank line.)
