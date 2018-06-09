@@ -18,7 +18,8 @@ AkeNo,https://www.voobly.com/profile/view/123723545
 The output is saved in a file `ratings.csv`.
 Each line contains a player name and their 4 ratings, separated by commas.
 """
-
+# TODO support multiple Voobly profiles
+# TODO support multiple ladders
 
 import sys
 import argparse
@@ -102,13 +103,14 @@ def load_players(fname=None):
         FileNotFoundError: If the file fname does not exist.
         OSError: If fname cannot be read.
     """
+    # TODO better csv parsing
     if fname is None: fname = PLAYERS_FILE_PATH
     with open(fname) as player_file:
-        players = {}
+        players = {} # maps a player name to that player's uid
         # skip the header line
         for line in player_file.readlines()[1:]:
-            player, profile = line.strip().split(',')
-            players[player] = parse_id(profile)
+            player, uid = line.strip().split(',')
+            players[player] = parse_id(uid)
         return players
 
 
@@ -206,6 +208,9 @@ def main(args):
     except OSError:
         print(PLAYERS_FILE_ERROR_MSG)
         return # terminate when player data cannot be read
+    except ValueError as e:
+        print(e)
+        return # Terminate when player data contains an invalid url
 
     with requests.Session() as sess:
         sess.get(VOOBLY_LOGIN_URL) # initial login page get to populate cookies

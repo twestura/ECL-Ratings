@@ -6,7 +6,12 @@ from nose.tools import assert_equal
 from nose.tools import assert_raises
 
 
+# Well formatted test file
 TEST_PLAYERS = 'test_players.csv'
+
+
+# Test file with invalid Voobly url
+TEST_PLAYERS_BAD = 'test_players_bad.csv'
 
 
 def test_load_players_success():
@@ -29,8 +34,12 @@ def test_load_players_not_found():
 
 
 def test_load_players_bad_url():
-    """Tests loading a list of players that contains a bad url."""
-    pass # TODO implement
+    """
+    Tests that a ValueError is raised when loading a list of players that
+    contains a bad url.
+    """
+    with assert_raises(ValueError):
+        scrape_ratings.load_players(TEST_PLAYERS_BAD)
 
 
 def test_parse_id_basic():
@@ -55,7 +64,6 @@ def test_parse_id_suffix():
     """Tests parsing a url that has extra links at the end."""
     url = 'https://www.voobly.com/profile/view/123684015/Ratings/games/profile/123684015/131' # pylint: disable=line-too-long
     assert_equal('123684015', scrape_ratings.parse_id(url))
-
 
 
 def test_parse_id_no_view():
