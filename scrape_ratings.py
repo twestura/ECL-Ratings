@@ -92,15 +92,15 @@ RATINGS_HEADER = 'Player, Current 1v1, Highest 1v1, Current TG, Highest TG\n'
 
 def load_players(fname=None):
     """
-    Returns a dictionary of player_name: voobly_profile_link.
+    Returns a dictionary of player_name: uid.
 
     Args:
         fname: The file path to the players file.
     Returns:
-        A dict mapping a string player name to the string link to their
-        Voobly profile.
+        A dict mapping a string player name to their string Voobly user id.
     Raises:
-        FileNotFoundError: The file fname does not exist.
+        FileNotFoundError: If the file fname does not exist.
+        OSError: If fname cannot be read.
     """
     if fname is None: fname = PLAYERS_FILE_PATH
     with open(fname) as player_file:
@@ -108,7 +108,7 @@ def load_players(fname=None):
         # skip the header line
         for line in player_file.readlines()[1:]:
             player, profile = line.strip().split(',')
-            players[player] = profile
+            players[player] = parse_id(profile)
         return players
 
 
@@ -122,7 +122,7 @@ def write_ratings(player_ratings, fname=None):
                 ['Current 1v1', 'Highest 1v1', 'Current TG', 'Highest TG']
         fname: The file path to the output file.
     Raises:
-        OSError if fname cannot be written to.
+        OSError: If fname cannot be written to.
     """
     if fname is None: fname = OUT_FILE_PATH
     with open(fname, 'w') as output_file:
@@ -131,17 +131,39 @@ def write_ratings(player_ratings, fname=None):
             output_file.write('{}, {}\n'.format(player, ', '.join(ratings)))
 
 
-def get_id(voobly_url):
+def parse_id(voobly_url):
     """
     Returns the player user id from a voobly url.
+
+    A Voobly url has the format 'www.voobly.com/profile/view/uid', where
+    the uid is the users id number. The url may optionally have text prepended
+    or appended, as long as it contains this string.
+
+    Example URLs:
+    www.voobly.com/profile/view/123684015
+    https://www.voobly.com/profile/view/123684015
+    https://www.voobly.com/profile/view/123684015/
+    https://www.voobly.com/profile/view/123684015/Ratings/games/profile/123684015/131
+
+    Note: this method simply parses the URL to obtain the uid, it does not
+    check whether a Voobly profile with that uid exists.
 
     Args:
         voobly_url: A voobly url, must not end in a trailing slash.
     Returns:
         The player user id parsed from the url.
+    Raises:
+        ValueError: If the url is not correctly formatted.
     """
-    # TODO better url handling
-    return voobly_url.split('/')[-1]
+    try:
+        split_url = voobly_url.split('/')
+        view_index = split_url.index('view')
+        uid = split_url[view_index + 1]
+        int(uid) # ensure that the uid is an integer
+        return uid
+    except (ValueError, IndexError):
+        raise ValueError(
+            "The url '{}' is not formatted correctly.".format(voobly_url))
 
 
 def get_ratings(sess, uid, lid):
@@ -177,7 +199,7 @@ def main(args):
     parser.add_argument('password', help='Voobly account password.')
     parsed = parser.parse_args(args)
     try:
-        player_profiles = load_players() # dict of player name to voobly profile
+        player_profiles = load_players() # dict of player name to voobly uid
     except FileNotFoundError:
         print(PLAYERS_FILE_NOT_FOUND)
         return # terminate when no players are present
@@ -186,12 +208,12 @@ def main(args):
         return # terminate when player data cannot be read
 
     with requests.Session() as sess:
-        sess.get(VOOBLY_LOGIN_URL) # initial login page to populate cookies
+        sess.get(VOOBLY_LOGIN_URL) # initial login page get to populate cookies
         login_data = {'username': parsed.username, 'password': parsed.password}
         hdr = {'referer': VOOBLY_LOGIN_AUTH_URL}
         login_response = sess.post(VOOBLY_LOGIN_AUTH_URL, data=login_data,
                                    headers=hdr)
-        # login failed if title of the result is 'Login'
+        # Voobly login failed if title of the result is 'Login'
         login_soup = BeautifulSoup(login_response.content, 'html.parser')
         if login_soup.title.get_text() == 'Login':
             print(VOOBLY_LOGIN_FAIL_MSG)
@@ -200,12 +222,11 @@ def main(args):
         lid_1v1 = LADDERS['RM - 1v1']
         lid_tg = LADDERS['RM - Team Games']
         ratings = {}
-        for player, link in player_profiles.items():
-            # TODO handle incorrect url
-            uid = get_id(link)
+        for player, uid in player_profiles.items():
             current_1v1, highest_1v1 = get_ratings(sess, uid, lid_1v1)
             current_tg, highest_tg = get_ratings(sess, uid, lid_tg)
             ratings[player] = [current_1v1, highest_1v1, current_tg, highest_tg]
+
     try:
         write_ratings(ratings)
     except OSError:
