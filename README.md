@@ -21,11 +21,11 @@ A trailing slash must not be appended to the URL.
 An example `players.csv` follows:
 ```
 player-name, voobly-profile-link
-TWest, https://www.voobly.com/profile/view/123684015
-robo_boro, https://www.voobly.com/profile/view/123905987
-smarthy_, https://www.voobly.com/profile/view/124230162
-Pete26196, https://www.voobly.com/profile/view/123685133
-AkeNo, https://www.voobly.com/profile/view/123723545
+TWest,https://www.voobly.com/profile/view/123684015
+robo_boro,https://www.voobly.com/profile/view/123905987
+smarthy_,https://www.voobly.com/profile/view/124230162
+Pete26196,https://www.voobly.com/profile/view/123685133
+AkeNo,https://www.voobly.com/profile/view/123723545
 
 ```
 

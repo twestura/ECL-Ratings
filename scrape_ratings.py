@@ -8,11 +8,11 @@ then the voobly profile link.
 For example:
 ```
 player-name, voobly-profile-link
-TWest, https://www.voobly.com/profile/view/123684015
-robo_boro, https://www.voobly.com/profile/view/123905987
-smarthy_, https://www.voobly.com/profile/view/124230162
-Pete26196, https://www.voobly.com/profile/view/123685133
-AkeNo, https://www.voobly.com/profile/view/123723545
+TWest,https://www.voobly.com/profile/view/123684015
+robo_boro,https://www.voobly.com/profile/view/123905987
+smarthy_,https://www.voobly.com/profile/view/124230162
+Pete26196,https://www.voobly.com/profile/view/123685133
+AkeNo,https://www.voobly.com/profile/view/123723545
 ```
 
 The output is saved in a file `ratings.csv`.
@@ -87,7 +87,7 @@ def load_players(fname=None):
         players = {}
         # skip the header line
         for line in player_file.readlines()[1:]:
-            player, profile = line.strip().split(', ')
+            player, profile = line.strip().split(',')
             players[player] = profile
         return players
 
