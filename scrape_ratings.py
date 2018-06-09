@@ -19,7 +19,7 @@ The output is saved in a file `ratings.csv`.
 Each line contains a player name and their 4 ratings, separated by commas.
 """
 # TODO support multiple Voobly profiles
-# TODO support multiple ladders
+# TODO support multiple ladders (e.g. Deathmatch)
 
 import sys
 import argparse
@@ -46,6 +46,18 @@ OUT_FILE_PATH = 'ratings.csv'
 
 # Error message to display when failing to write to the ratings file.
 WRITE_ERROR_MSG = "Cannot write to 'ratings.csv'."
+
+
+# Path to the file of invalid players and uids.
+INVALID_FILE_PATH = 'invalid.csv'
+
+
+# Error message to print when at least one player uid is invalid
+INVALID_UID_MSG = "{} invalid player uid(s), writing to 'invalid.csv'."
+
+
+# Error message to display when failing to write to the invalid uid file.
+WRITE_ERROR_INVALID = "Cannot write to 'invalid.csv'"
 
 
 # Message to display when failing to log in to Voobly.
@@ -178,12 +190,17 @@ def get_ratings(sess, uid, lid):
         lid: Ladder id, the id of a Voobly ladder, must be a value in LADDERS.
     Returns:
         Two strings: current_rating, highest_rating.
+    Raises:
+        ValueError: If the player uid is invalid.
     """
     ratings_url = RATINGS_BASE_URL.format(uid=uid, lid=lid)
     ratings_response = sess.get(ratings_url)
+    # TODO handle invalid id number
     soup = BeautifulSoup(ratings_response.content, 'html.parser')
-    # TODO handle 0 games
+    if soup.title.get_text() == 'Page Not Found':
+        raise ValueError("'{}' is an invalid uid.".format(uid))
     current = soup.find('td', text='Current Rating').find_next().get_text()
+    if not current: current = '1600' # account for 0 games played
     highest = soup.find('td', text='Highest Rating').find_next().get_text()
     return current, highest
 
@@ -210,8 +227,9 @@ def main(args):
         return # terminate when player data cannot be read
     except ValueError as e:
         print(e)
-        return # Terminate when player data contains an invalid url
+        return # terminate when player data contains an invalid url
 
+    invalid_players = [] # player names with invalid uids
     with requests.Session() as sess:
         sess.get(VOOBLY_LOGIN_URL) # initial login page get to populate cookies
         login_data = {'username': parsed.username, 'password': parsed.password}
@@ -228,15 +246,29 @@ def main(args):
         lid_tg = LADDERS['RM - Team Games']
         ratings = {}
         for player, uid in player_profiles.items():
-            current_1v1, highest_1v1 = get_ratings(sess, uid, lid_1v1)
-            current_tg, highest_tg = get_ratings(sess, uid, lid_tg)
-            ratings[player] = [current_1v1, highest_1v1, current_tg, highest_tg]
+            try:
+                current_1v1, highest_1v1 = get_ratings(sess, uid, lid_1v1)
+                current_tg, highest_tg = get_ratings(sess, uid, lid_tg)
+                ratings[player] = [current_1v1, highest_1v1,
+                                   current_tg, highest_tg]
+            except ValueError:
+                invalid_players.append(player)
 
     try:
         write_ratings(ratings)
     except OSError:
         print(WRITE_ERROR_MSG)
         return # terminate if the ratings cannot be written
+    if invalid_players:
+        try:
+            print(INVALID_UID_MSG.format(len(invalid_players)))
+            with open(INVALID_FILE_PATH, 'w') as bad_uid_file:
+                for player in invalid_players:
+                    bad_uid_file.write(
+                        '{},{}\n'.format(player, player_profiles[player]))
+        except OSError:
+            print(WRITE_ERROR_INVALID)
+            return # terminate if the invalid uids cannot be written
 
 
 if __name__ == '__main__':

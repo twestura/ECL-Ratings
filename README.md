@@ -24,7 +24,6 @@ robo_boro,https://www.voobly.com/profile/view/123905987
 smarthy_,https://www.voobly.com/profile/view/124230162
 Pete26196,https://www.voobly.com/profile/view/123685133
 AkeNo,https://www.voobly.com/profile/view/123723545
-
 ```
 
 The url must contain the `www.voobly.com/profile/view/uid` part of the URL.
@@ -44,9 +43,13 @@ AkeNo, 1814, 1858, 1689, 1777
 
 ```
 
+If a URL appears to be formatted correctly but the player's Voobly user ID is invalid, then the player name and their id is added to the file `invalid.csv`.
+This file is modified only if running the script encounters an invalid ID.
+
 ## Future Plans
 * Multiple Voobly profiles per player, in case highest 1v1 and highest TG ratings are on separate accounts.
 * Support for the other ladders so this can pull ratings for other tournaments, e.g. deathmatch tournaments.
 * Integration with Google Forms and Sheets and Challonge to automate the signup and bracket creation process.
 * GUI interface to make it easier to use for people not familar with a command line.
+* Add an option for scraping the player name from the Voobly profile instead of needing to provide it in `players.csv`.
 * Voobly provides an API for accessing information about user accounts and ladders here: `https://www.voobly.com/pages/view/147/External-API-Documentation`. Unfortunately, this API currently does not include the highest elo, only the current elo. I would prefer to use the API, if it's ever updated, instead of scraping the website.
