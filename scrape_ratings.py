@@ -30,6 +30,10 @@ from bs4 import BeautifulSoup
 PLAYERS_FILE_PATH = 'players.csv'
 
 
+# Error message to display if players.csv does not exist.
+PLAYERS_FILE_NOT_FOUND = "The file 'players.csv' does not exist."
+
+
 # File in which to save the output
 OUT_FILE_PATH = 'ratings.csv'
 
@@ -81,6 +85,8 @@ def load_players(fname=None):
     Returns:
         A dict mapping a string player name to the string link to their
         Voobly profile.
+    Raises:
+        FileNotFoundError: The file fname does not exist.
     """
     if fname is None: fname = PLAYERS_FILE_PATH
     with open(fname) as player_file:
@@ -152,8 +158,11 @@ def main(args):
     parser.add_argument('username', help='Voobly account username.')
     parser.add_argument('password', help='Voobly account password.')
     parsed = parser.parse_args(args)
-    player_profiles = load_players() # dict of player name to voobly profile
-    # TODO handle incorrect file
+    try:
+        player_profiles = load_players() # dict of player name to voobly profile
+    except FileNotFoundError:
+        print(PLAYERS_FILE_NOT_FOUND)
+        return # terminate when no players are present
 
     with requests.Session() as sess:
         sess.get(VOOBLY_LOGIN_URL) # initial login page to populate cookies
