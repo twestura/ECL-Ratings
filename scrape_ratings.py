@@ -34,8 +34,22 @@ PLAYERS_FILE_PATH = 'players.csv'
 PLAYERS_FILE_NOT_FOUND = "The file 'players.csv' does not exist."
 
 
-# File in which to save the output
+# Error message to display if there is an OSError when attempting to read the
+# players file.
+PLAYERS_FILE_ERROR_MSG = "Cannot read 'players.csv'."
+
+
+# File in which to save the output.
 OUT_FILE_PATH = 'ratings.csv'
+
+
+# Error message to display when failing to write to the ratings file.
+WRITE_ERROR_MSG = "Cannot write to 'ratings.csv'."
+
+
+# Message to display when failing to log in to Voobly.
+VOOBLY_LOGIN_FAIL_MSG = ('Cannot log in to Voobly.'
+                         +' Check your username and password.')
 
 
 # Map of ladder names to their ids.
@@ -107,6 +121,8 @@ def write_ratings(player_ratings, fname=None):
             four strings, each representing a rating. This list contains:
                 ['Current 1v1', 'Highest 1v1', 'Current TG', 'Highest TG']
         fname: The file path to the output file.
+    Raises:
+        OSError if fname cannot be written to.
     """
     if fname is None: fname = OUT_FILE_PATH
     with open(fname, 'w') as output_file:
@@ -124,6 +140,7 @@ def get_id(voobly_url):
     Returns:
         The player user id parsed from the url.
     """
+    # TODO better url handling
     return voobly_url.split('/')[-1]
 
 
@@ -141,6 +158,7 @@ def get_ratings(sess, uid, lid):
     ratings_url = RATINGS_BASE_URL.format(uid=uid, lid=lid)
     ratings_response = sess.get(ratings_url)
     soup = BeautifulSoup(ratings_response.content, 'html.parser')
+    # TODO handle 0 games
     current = soup.find('td', text='Current Rating').find_next().get_text()
     highest = soup.find('td', text='Highest Rating').find_next().get_text()
     return current, highest
@@ -163,13 +181,21 @@ def main(args):
     except FileNotFoundError:
         print(PLAYERS_FILE_NOT_FOUND)
         return # terminate when no players are present
+    except OSError:
+        print(PLAYERS_FILE_ERROR_MSG)
+        return # terminate when player data cannot be read
 
     with requests.Session() as sess:
         sess.get(VOOBLY_LOGIN_URL) # initial login page to populate cookies
         login_data = {'username': parsed.username, 'password': parsed.password}
         hdr = {'referer': VOOBLY_LOGIN_AUTH_URL}
-        sess.post(VOOBLY_LOGIN_AUTH_URL, data=login_data, headers=hdr)
-        # TODO handle failed login
+        login_response = sess.post(VOOBLY_LOGIN_AUTH_URL, data=login_data,
+                                   headers=hdr)
+        # login failed if title of the result is 'Login'
+        login_soup = BeautifulSoup(login_response.content, 'html.parser')
+        if login_soup.title.get_text() == 'Login':
+            print(VOOBLY_LOGIN_FAIL_MSG)
+            return # terminate if Voobly login failed
 
         lid_1v1 = LADDERS['RM - 1v1']
         lid_tg = LADDERS['RM - Team Games']
@@ -180,7 +206,11 @@ def main(args):
             current_1v1, highest_1v1 = get_ratings(sess, uid, lid_1v1)
             current_tg, highest_tg = get_ratings(sess, uid, lid_tg)
             ratings[player] = [current_1v1, highest_1v1, current_tg, highest_tg]
-    write_ratings(ratings)
+    try:
+        write_ratings(ratings)
+    except OSError:
+        print(WRITE_ERROR_MSG)
+        return # terminate if the ratings cannot be written
 
 
 if __name__ == '__main__':
