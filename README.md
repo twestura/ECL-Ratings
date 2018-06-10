@@ -50,7 +50,7 @@ This file begins with a header line, and each subsequent line contains the name 
 The file ends in a blank line.
 For example:
 ```
-Player Name, RM - 1v1, RM - Team Games, DM 1v1, DM TG
+Player Name, Current RM - 1v1, Highest RM - 1v1, Current RM - Team Games, Highest RM - Team Games, Current DM 1v1, Highest DM 1v1, Current DM TG, Highest DM TG
 TWest, 1709, 1748, 1650, 1680, 1600, 1600, 1600, 1600
 robo_boro, 1901, 1914, 1674, 1753, 1600, 1600, 1594, 1600
 smarthy_, 1490, 1652, 1534, 1644, 1600, 1600, 1603, 1610

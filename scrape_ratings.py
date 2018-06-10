@@ -141,8 +141,11 @@ def write_ratings(player_ratings, ladders, fname=None):
     """
     if fname is None: fname = OUT_FILE_PATH
     with open(fname, 'w') as output_file:
-        output_file.write(RATINGS_HEADER_START + ', ' + ', '.join(ladders)
-                          + '\n')
+        header = [RATINGS_HEADER_START]
+        for ladder in ladders:
+            header.append('Current ' + ladder)
+            header.append('Highest ' + ladder)
+        output_file.write(', '.join(header) + '\n')
         for player, ratings in player_ratings.items():
             output_file.write('{}, {}\n'.format(player, ', '.join(ratings)))
 
