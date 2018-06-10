@@ -18,7 +18,6 @@ AkeNo,https://www.voobly.com/profile/view/123723545
 The output is saved in a file `ratings.csv`.
 Each line contains a player name and their 4 ratings, separated by commas.
 """
-# TODO support multiple ladders (e.g. Deathmatch)
 
 import csv
 import sys
@@ -99,8 +98,8 @@ VOOBLY_LOGIN_AUTH_URL = 'https://www.voobly.com/login/auth'
 RATINGS_BASE_URL = 'https://www.voobly.com/profile/view/{uid}/Ratings/games/profile/{uid}/{lid}' # pylint: disable=line-too-long
 
 
-# Header for the ratings output csv file.
-RATINGS_HEADER = 'Player, Current 1v1, Highest 1v1, Current TG, Highest TG\n'
+# Start of geader for the ratings output csv file.
+RATINGS_HEADER_START = 'Player Name'
 
 
 def load_players(fname=None):
@@ -126,21 +125,24 @@ def load_players(fname=None):
     return players
 
 
-def write_ratings(player_ratings, fname=None):
+def write_ratings(player_ratings, ladders, fname=None):
     """
     Saves player ratings to fname.
 
     Args:
-        player_ratings: A dictonary mapping a string player name to a list with
-            four strings, each representing a rating. This list contains:
-                ['Current 1v1', 'Highest 1v1', 'Current TG', 'Highest TG']
+        player_ratings: A dictonary mapping a string player name to a list of
+            strings. Each string is a list representing the player's rating
+            on a ladder. This list must be the same length as ladders.
+        ladders: A list of string ladder names. Must be the same length as
+            player_ratings.
         fname: The file path to the output file.
     Raises:
         OSError: If fname cannot be written to.
     """
     if fname is None: fname = OUT_FILE_PATH
     with open(fname, 'w') as output_file:
-        output_file.write(RATINGS_HEADER)
+        output_file.write(RATINGS_HEADER_START + ', ' + ', '.join(ladders)
+                          + '\n')
         for player, ratings in player_ratings.items():
             output_file.write('{}, {}\n'.format(player, ', '.join(ratings)))
 
@@ -175,9 +177,9 @@ def parse_id(voobly_url):
         uid = split_url[view_index + 1]
         int(uid) # ensure that the uid is an integer
         return uid
-    except (ValueError, IndexError):
+    except (ValueError, IndexError) as e:
         raise ValueError(
-            "The url '{}' is not formatted correctly.".format(voobly_url))
+            "The url '{}' is incorrectly formatted.".format(voobly_url)) from e
 
 
 def get_ratings(sess, uid_list, lid):
@@ -194,7 +196,8 @@ def get_ratings(sess, uid_list, lid):
     Returns:
         Two strings: current_rating, highest_rating.
     Raises:
-        ValueError: If a player uid is invalid.
+        ValueError: If a player uid is invalid. The ValueError contains the
+            invalid uid as a message.
     """
     max_current = -1
     max_highest = -1
@@ -203,7 +206,7 @@ def get_ratings(sess, uid_list, lid):
         ratings_response = sess.get(ratings_url)
         soup = BeautifulSoup(ratings_response.content, 'html.parser')
         if soup.title.get_text() == 'Page Not Found':
-            raise ValueError("'{}' is an invalid uid.".format(uid))
+            raise ValueError("{}".format(uid))
 
         current = soup.find('td', text='Current Rating').find_next().get_text()
         # account for 0 games
@@ -215,6 +218,31 @@ def get_ratings(sess, uid_list, lid):
     return str(max_current), str(max_highest)
 
 
+def parse_args(args):
+    """
+    Parses args.
+
+    Args:
+        args: List of strings to parse.
+    Returns:
+        An object containing the parsed arguments. The object has three fields:
+            username: Voobly username string.
+            password: Voobly password string.
+            ladders: List of string names of Voobly ladders from which to pull
+                ratings.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('username', help='Voobly account username.')
+    parser.add_argument('password', help='Voobly account password.')
+    parser.add_argument('--ladders', default=['RM - 1v1', 'RM - Team Games'],
+                        help='Select the ladders form which you want ratings.',
+                        choices=sorted(LADDERS, key=LADDERS.get), nargs='*')
+    parsed = parser.parse_args(args)
+    # a single argument is parsed as a single string, turn it into a list
+    if isinstance(parsed.ladders, str): parsed.ladders = [parsed.ladders]
+    return parsed
+
+
 def main(args):
     """
     Runs the script, loading player ratings from the Voobly website and saving
@@ -223,10 +251,8 @@ def main(args):
     Args:
         args: Usually sys.argv[1:].
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument('username', help='Voobly account username.')
-    parser.add_argument('password', help='Voobly account password.')
-    parsed = parser.parse_args(args)
+    parsed = parse_args(args)
+
     try:
         player_profiles = load_players() # dict of player name to voobly uid
     except FileNotFoundError:
@@ -239,9 +265,10 @@ def main(args):
         print(e)
         return # terminate when player data contains an invalid url
 
-    invalid_players = [] # player names with invalid uids
+    invalid_players = {} # maps a player name to their invalid uids
     with requests.Session() as sess:
         sess.get(VOOBLY_LOGIN_URL) # initial login page get to populate cookies
+        # TODO handle failure of initial get (try with internet off)
         login_data = {'username': parsed.username, 'password': parsed.password}
         hdr = {'referer': VOOBLY_LOGIN_AUTH_URL}
         login_response = sess.post(VOOBLY_LOGIN_AUTH_URL, data=login_data,
@@ -252,20 +279,21 @@ def main(args):
             print(VOOBLY_LOGIN_FAIL_MSG)
             return # terminate if Voobly login failed
 
-        lid_1v1 = LADDERS['RM - 1v1']
-        lid_tg = LADDERS['RM - Team Games']
-        ratings = {}
+        ratings = {} # maps a player name to their list of ratings
         for player, uid_list in player_profiles.items():
             try:
-                current_1v1, highest_1v1 = get_ratings(sess, uid_list, lid_1v1)
-                current_tg, highest_tg = get_ratings(sess, uid_list, lid_tg)
-                ratings[player] = [current_1v1, highest_1v1,
-                                   current_tg, highest_tg]
-            except ValueError:
-                invalid_players.append(player)
+                ratings[player] = []
+                for ladder in parsed.ladders:
+                    lid = LADDERS[ladder]
+                    current, highest = get_ratings(sess, uid_list, lid)
+                    ratings[player].append(current)
+                    ratings[player].append(highest)
+            except ValueError as err:
+                del ratings[player] # remove player from good output
+                invalid_players[player] = str(err)
 
     try:
-        write_ratings(ratings)
+        write_ratings(ratings, parsed.ladders)
     except OSError:
         print(WRITE_ERROR_MSG)
         return # terminate if the ratings cannot be written
@@ -273,9 +301,9 @@ def main(args):
         try:
             print(INVALID_UID_MSG.format(len(invalid_players)))
             with open(INVALID_FILE_PATH, 'w') as bad_uid_file:
-                for player in invalid_players:
+                for player, uid in invalid_players.items():
                     bad_uid_file.write(
-                        '{},{}\n'.format(player, player_profiles[player]))
+                        '{},{}\n'.format(player, uid))
         except OSError:
             print(WRITE_ERROR_INVALID)
             return # terminate if the invalid uids cannot be written

@@ -1,4 +1,5 @@
 """Unit test for scrape_ratings"""
+# TODO experiment with mocking to test remaining methods
 
 
 import scrape_ratings
