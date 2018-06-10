@@ -14,16 +14,96 @@ TEST_PLAYERS = 'test_players.csv'
 TEST_PLAYERS_BAD = 'test_players_bad.csv'
 
 
+# Test file with players who have multiple accounts
+TEST_PLAYERS_MULTIPLE = 'test_players_multiple.csv'
+
+
+# Tests that a file without a header is processed correctly
+TEST_PLAYERS_MULTIPLE_NOHDR = 'test_players_multiple.csv'
+
+
+# Test a player file with no text
+TEST_PLAYERS_EMPTY = 'test_players_empty.csv'
+
+
+# Test a player file with only a header
+TEST_PLAYERS_EMPTY_HDR = 'test_players_empty_hdr.csv'
+
+
+# Test a player file with a single player
+TEST_PLAYERS_SINGLE = 'test_players_single.csv'
+
+
+# Test a player file with a single player and a header
+TEST_PLAYERS_SINGLE_HDR = 'test_players_single_hdr.csv'
+
 def test_load_players_success():
     """Tests loading the example players file."""
-    players = scrape_ratings.load_players('test_players.csv')
+    players = scrape_ratings.load_players(TEST_PLAYERS)
     expected_players = {
-        'TWest': '123684015',
-        'robo_boro': '123905987',
-        'smarthy_': '124230162',
-        'Pete26196': '123685133',
-        'AkeNo': '123723545'
+        'TWest': ['123684015'],
+        'robo_boro': ['123905987'],
+        'smarthy_': ['124230162'],
+        'Pete26196': ['123685133'],
+        'AkeNo': ['123723545']
     }
+    assert_equal(expected_players, players)
+
+
+def test_load_players_multiple():
+    """Tests loading a player file with a player who has multiple accounts."""
+    players = scrape_ratings.load_players(TEST_PLAYERS_MULTIPLE)
+    expected_players = {
+        'TWest': ['123684015'],
+        'robo_boro': ['123905987'],
+        'smarthy_': ['124230162'],
+        'Pete26196': ['123685133', '124976639'],
+        'AkeNo': ['123723545']
+    }
+    assert_equal(expected_players, players)
+
+
+def test_load_players_nohdr():
+    """
+    Tests loading a player file with a player who has multiple accounts,
+    using a file that does not include the csv header.
+    """
+    players = scrape_ratings.load_players(TEST_PLAYERS_MULTIPLE_NOHDR)
+    expected_players = {
+        'TWest': ['123684015'],
+        'robo_boro': ['123905987'],
+        'smarthy_': ['124230162'],
+        'Pete26196': ['123685133', '124976639'],
+        'AkeNo': ['123723545']
+    }
+    assert_equal(expected_players, players)
+
+
+def test_load_players_empty():
+    """Tests loading an empty players file."""
+    players = scrape_ratings.load_players(TEST_PLAYERS_EMPTY)
+    expected_players = {}
+    assert_equal(expected_players, players)
+
+
+def test_load_players_empty_hdr():
+    """Tests loading an empty players file with a header."""
+    players = scrape_ratings.load_players(TEST_PLAYERS_EMPTY_HDR)
+    expected_players = {}
+    assert_equal(expected_players, players)
+
+
+def test_load_players_single():
+    """Tests loading a players file with a single player."""
+    players = scrape_ratings.load_players(TEST_PLAYERS_SINGLE)
+    expected_players = {'TWest': ['123684015']}
+    assert_equal(expected_players, players)
+
+
+def test_load_players_single_hdr():
+    """Tests loading a players file with a single player and a header."""
+    players = scrape_ratings.load_players(TEST_PLAYERS_SINGLE_HDR)
+    expected_players = {'TWest': ['123684015']}
     assert_equal(expected_players, players)
 
 

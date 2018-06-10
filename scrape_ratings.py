@@ -18,9 +18,9 @@ AkeNo,https://www.voobly.com/profile/view/123723545
 The output is saved in a file `ratings.csv`.
 Each line contains a player name and their 4 ratings, separated by commas.
 """
-# TODO support multiple Voobly profiles
 # TODO support multiple ladders (e.g. Deathmatch)
 
+import csv
 import sys
 import argparse
 import requests
@@ -115,15 +115,15 @@ def load_players(fname=None):
         FileNotFoundError: If the file fname does not exist.
         OSError: If fname cannot be read.
     """
-    # TODO better csv parsing
     if fname is None: fname = PLAYERS_FILE_PATH
     with open(fname) as player_file:
-        players = {} # maps a player name to that player's uid
-        # skip the header line
-        for line in player_file.readlines()[1:]:
-            player, uid = line.strip().split(',')
-            players[player] = parse_id(uid)
-        return players
+        profilereader = csv.reader(player_file)
+        rows = [row for row in profilereader]
+        if not rows: return {} # return if file is empty
+        if rows[0][0] == 'player-name': rows = rows[1:] # skip header if present
+    players = {} # maps a player name to a list of that player's uids
+    for row in rows: players[row[0]] = [parse_id(uid) for uid in row[1:]]
+    return players
 
 
 def write_ratings(player_ratings, fname=None):
@@ -180,29 +180,39 @@ def parse_id(voobly_url):
             "The url '{}' is not formatted correctly.".format(voobly_url))
 
 
-def get_ratings(sess, uid, lid):
+def get_ratings(sess, uid_list, lid):
     """
     Returns the current and highest ratings of a player on the given ladder.
 
+    If an account has 0 games, does not consider the rating on that ladder.
+    Assigns a default value of 1600 if all of the accounts have 0 games.
+
     Args:
         sess: The current session logged in to access Voobly profiles.
-        uid: User id, a string of a player's Voobly user id.
+        uid_list: A list of string Voobly user ids.
         lid: Ladder id, the id of a Voobly ladder, must be a value in LADDERS.
     Returns:
         Two strings: current_rating, highest_rating.
     Raises:
-        ValueError: If the player uid is invalid.
+        ValueError: If a player uid is invalid.
     """
-    ratings_url = RATINGS_BASE_URL.format(uid=uid, lid=lid)
-    ratings_response = sess.get(ratings_url)
-    # TODO handle invalid id number
-    soup = BeautifulSoup(ratings_response.content, 'html.parser')
-    if soup.title.get_text() == 'Page Not Found':
-        raise ValueError("'{}' is an invalid uid.".format(uid))
-    current = soup.find('td', text='Current Rating').find_next().get_text()
-    if not current: current = '1600' # account for 0 games played
-    highest = soup.find('td', text='Highest Rating').find_next().get_text()
-    return current, highest
+    max_current = -1
+    max_highest = -1
+    for uid in uid_list:
+        ratings_url = RATINGS_BASE_URL.format(uid=uid, lid=lid)
+        ratings_response = sess.get(ratings_url)
+        soup = BeautifulSoup(ratings_response.content, 'html.parser')
+        if soup.title.get_text() == 'Page Not Found':
+            raise ValueError("'{}' is an invalid uid.".format(uid))
+
+        current = soup.find('td', text='Current Rating').find_next().get_text()
+        # account for 0 games
+        if current: max_current = max(max_current, int(current))
+        highest = soup.find('td', text='Highest Rating').find_next().get_text()
+        max_highest = max(max_highest, int(highest))
+
+    if max_current == -1: max_current = 1600 # account for 0 games
+    return str(max_current), str(max_highest)
 
 
 def main(args):
@@ -245,10 +255,10 @@ def main(args):
         lid_1v1 = LADDERS['RM - 1v1']
         lid_tg = LADDERS['RM - Team Games']
         ratings = {}
-        for player, uid in player_profiles.items():
+        for player, uid_list in player_profiles.items():
             try:
-                current_1v1, highest_1v1 = get_ratings(sess, uid, lid_1v1)
-                current_tg, highest_tg = get_ratings(sess, uid, lid_tg)
+                current_1v1, highest_1v1 = get_ratings(sess, uid_list, lid_1v1)
+                current_tg, highest_tg = get_ratings(sess, uid_list, lid_tg)
                 ratings[player] = [current_1v1, highest_1v1,
                                    current_tg, highest_tg]
             except ValueError:
