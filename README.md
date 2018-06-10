@@ -4,7 +4,7 @@ A script for scraping Voobly ratings, inspired by a script from Jineapple.
 
 ## Usage
 
-Run this script as a Python script by running the file `scrape_ratings.py`
+Run this script as a Python script by running the file `scrape_ratings.py`:
 ```
 > python scrape_ratings.py <voobly-username> <voobly-password>
 ```
@@ -59,7 +59,7 @@ AkeNo, 1814, 1858, 1689, 1777, 1600, 1600, 1600, 1600
 
 ```
 
-If a player has multiple accounts, then the current rating is determined by using highest rating across all of those accounts, not including accounts that have 0 games on a ladder (that is, if one account is 1450 and another is 1600 but with 0 games player, the current rating is given as 1450.)
+If a player has multiple accounts, then the current rating is determined by using the maximum current rating across all of those accounts, not including accounts that have 0 games on a ladder (that is, if one account is 1450 and another is 1600 but with 0 games player, the current rating is given as 1450.)
 
 If a URL appears to be formatted correctly but the player's Voobly user ID is invalid, then the player name and their id is written to the file `invalid.csv`.
 This file is modified only if running the script encounters an invalid ID.
